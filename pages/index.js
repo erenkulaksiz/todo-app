@@ -27,7 +27,7 @@ const App = () => {
       taskTarget: "todo",
     },
     {
-      taskName: "Grociries",
+      taskName: "Groceries",
       taskDesc: "Go buy domates, biber, patlıcan and many more you would like",
       taskTarget: "todo",
     },
@@ -118,23 +118,21 @@ const App = () => {
 
   const submitEditingMode = (index) => {
     setEditingMode([false, index]);
-    if(editTitle){
-      // Edit title is not null
-      const temp = [...allTasks];
-      temp[index].taskName = editTitle;
-      temp[index].taskDesc = editDesc;
-      setAllTasks(temp);
-      //setTaskHovered([false, -1]);
-    }else{
-      deleteTask(index);
-    }
+    const temp = [...allTasks];
+    if(editTitle){ temp[index].taskName = editTitle; }else if(editTitle == "" || editTitle == " "){ deleteTask(index); }
+    // Deletetask not working here
+    if(editDesc){ temp[index].taskDesc = editDesc; }else if(editDesc == "" || editDesc == ""){ temp[index].taskDesc = editDesc; }
+    setAllTasks(temp);
+    //setTaskHovered([false, -1]);
+    setEditDesc(null);
+    setEditTitle(null);
   }
 
   //
 
   const [taskHovered, setTaskHovered] = useState([false, 0]);
   const toggleTaskHover = (index) => {
-    setTaskHovered([!taskHovered, index]);
+    setTaskHovered([true, index]);
   }
 
   return (
