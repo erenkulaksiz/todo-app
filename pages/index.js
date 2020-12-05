@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import styles from '../styles/app.module.scss'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHeartbeat, faCheckCircle, faLightbulb, faArrowLeft, faArrowRight, faEdit, faPlus, faCheck, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons'
+import axios from 'axios';
 
 const App = () => {
 
+  /*
   const [allTasks, setAllTasks] = useState([
     {
       taskName: "Homework",
@@ -51,7 +53,11 @@ const App = () => {
       taskDesc: "",
       taskTarget: "later",
     }
-  ]);
+  ]);*/
+
+  const [allTasks, setAllTasks] = useState([]);
+  const [isLoading, setLoading] = useState(false);
+
 
   const [editTitle, setEditTitle] = useState(null);
   const [editDesc, setEditDesc] = useState(null);
@@ -97,7 +103,11 @@ const App = () => {
     const temp = [...allTasks];
     temp.splice(index, 1);
     setAllTasks(temp);
-    setTaskHovered([false, -1]);
+    setTaskHovered([true, index]);
+
+    // Send all tasks to api
+
+
   }
 
   const moveTask = (index, target) => {
@@ -116,17 +126,41 @@ const App = () => {
     setEditingMode([false, index]);
   }
 
-  const submitEditingMode = (index) => {
-    setEditingMode([false, index]);
+  const submitEditingMode = async (index) => {
     const temp = [...allTasks];
     if(editTitle){ temp[index].taskName = editTitle; }else if(editTitle == "" || editTitle == " "){ deleteTask(index); }
     // Deletetask not working here
     if(editDesc){ temp[index].taskDesc = editDesc; }else if(editDesc == "" || editDesc == ""){ temp[index].taskDesc = editDesc; }
     setAllTasks(temp);
     //setTaskHovered([false, -1]);
-    setEditDesc(null);
-    setEditTitle(null);
+    exitEditingMode(index);
+
+    // Send all tasks to API
+
+    /*
+
+    await axios.put(`https://5fca12143c1c220016441a5f.mockapi.io/app/api/list/id=0`, temp)
+        .then(response => {console.log(response)});
+
+    */
   }
+
+  //
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    await axios.get(`https://5fca12143c1c220016441a5f.mockapi.io/app/api/list`)
+      .then(res => {
+        const data = res.data;
+        console.log(data);
+        setAllTasks(data);
+        setLoading(false);
+      })
+  }
+
+  useEffect(() => {
+    handleRefresh();
+  }, []);
 
   //
 
@@ -167,7 +201,7 @@ const App = () => {
                       return <div className={styles.card__edit}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIcon} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
                           <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
@@ -241,7 +275,7 @@ const App = () => {
                       return <div className={styles.card__edit}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIcon} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
                           <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
@@ -256,7 +290,6 @@ const App = () => {
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
                         <div className={taskHovered[1] == index && !editingMode[0] ? styles.card__controls_hover : styles.card__controls}>
-
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[0])}} ><FontAwesomeIcon icon={faArrowLeft}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[2])}}><FontAwesomeIcon icon={faArrowRight}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
@@ -311,7 +344,7 @@ const App = () => {
                       return <div className={styles.card__edit}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIcon} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
                           <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
