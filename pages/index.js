@@ -1,67 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../styles/app.module.scss'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHeartbeat, faCheckCircle, faLightbulb, faArrowLeft, faArrowRight, faEdit, faPlus, faCheck, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faHeartbeat, faCheckCircle, faLightbulb, faArrowLeft, faArrowRight, faEdit, faPlus, faCheck, faTrash, faTimes, faSync } from '@fortawesome/free-solid-svg-icons'
 import axios from 'axios';
 
 const App = () => {
-
-  /*
-  const [allTasks, setAllTasks] = useState([
-    {
-      taskName: "Homework",
-      taskDesc: "Get the homework done.",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Turn off the lamp",
-      taskDesc: "",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Buy a game",
-      taskDesc: "Get the Battlefield 1!",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Ask her out",
-      taskDesc: "I know you can do it!",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Groceries",
-      taskDesc: "Go buy domates, biber, patlıcan and many more you would like",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Boring tasks",
-      taskDesc: "I know right????",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Tweet",
-      taskDesc: "",
-      taskTarget: "todo",
-    },
-    {
-      taskName: "Watch: Interstellar",
-      taskDesc: "",
-      taskTarget: "later",
-    },
-    {
-      taskName: "Watch: Martian",
-      taskDesc: "",
-      taskTarget: "later",
-    }
-  ]);*/
-
+  
   const [allTasks, setAllTasks] = useState([]);
   const [isLoading, setLoading] = useState(false);
-
 
   const [editTitle, setEditTitle] = useState(null);
   const [editDesc, setEditDesc] = useState(null);
   const [editingMode, setEditingMode] = useState([false, -1]);
+
+  const apiRoute = "https://5fca12143c1c220016441a5f.mockapi.io/app/api/list/";
 
   const targets = ["todo","done","later"];
 
@@ -95,25 +47,42 @@ const App = () => {
 
   //
 
-  const addNewTask = (target) => {
-    setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}])
+  const addNewTask = async (target) => {
+  
+    const newTask = {taskName: "New Task", taskDesc: "Description (Optional)", taskTarget: target}
+
+    setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}]);
+
+    await axios.post(apiRoute, newTask)
+      .then(res => {
+        const data = res.data;
+        console.log(data);
+      })
   }
 
-  const deleteTask = (index) => {
+  const deleteTask = async (index) => {
+
     const temp = [...allTasks];
+    const taskIndex = temp[index]['id'];
+
     temp.splice(index, 1);
     setAllTasks(temp);
-    setTaskHovered([true, index]);
+    setTaskHovered([false, -1]);
 
-    // Send all tasks to api
-
-
+    await axios.delete(apiRoute+taskIndex)
+      .then(res => {
+        const data = res.data;
+        console.log(data);
+      })
+      
   }
 
   const moveTask = (index, target) => {
     const temp = [...allTasks];
     temp[index].taskTarget = target;
     setAllTasks(temp);
+
+    sendTasksToAPI(index);
   }
 
   const enterEditingMode = (index) => {
@@ -129,7 +98,6 @@ const App = () => {
   const submitEditingMode = async (index) => {
     const temp = [...allTasks];
     if(editTitle){ temp[index].taskName = editTitle; }else if(editTitle == "" || editTitle == " "){ deleteTask(index); }
-    // Deletetask not working here
     if(editDesc){ temp[index].taskDesc = editDesc; }else if(editDesc == "" || editDesc == ""){ temp[index].taskDesc = editDesc; }
     setAllTasks(temp);
     //setTaskHovered([false, -1]);
@@ -137,19 +105,33 @@ const App = () => {
 
     // Send all tasks to API
 
-    /*
+    sendTasksToAPI(index);
 
-    await axios.put(`https://5fca12143c1c220016441a5f.mockapi.io/app/api/list/id=0`, temp)
-        .then(response => {console.log(response)});
+  }
 
-    */
+  const sendTasksToAPI = async (index) => {
+
+    const temp = [...allTasks];
+
+    console.log("send task index: "+index+" id:"+temp[index]['id']);
+    
+    if(temp[index]['id']){
+      await axios.put(apiRoute+temp[index]['id'], temp[index])
+        .then(res => {
+          const data = res.data;
+          console.log(data);
+        })
+    }else{
+      console.log("error with index: "+index+" id:"+temp[index]['id']);
+    }
   }
 
   //
 
   const handleRefresh = async () => {
+    console.log("refreshing...");
     setLoading(true);
-    await axios.get(`https://5fca12143c1c220016441a5f.mockapi.io/app/api/list`)
+    await axios.get(apiRoute)
       .then(res => {
         const data = res.data;
         console.log(data);
@@ -171,9 +153,11 @@ const App = () => {
 
   return (
     <div className={styles.wrapper}>
-
       <div className={styles.container}>
         <div className={styles.todo}>
+          <div className={styles.refresh}>
+            <a href='#' onClick={() => {handleRefresh()}}><FontAwesomeIcon icon={faSync} /></a>
+          </div>
           <div className={styles.todo__header}>
             <div className={styles.header_content}>
               <div className={styles.header_content__title}>
@@ -191,14 +175,15 @@ const App = () => {
           </div>
           <div className={styles.todo__content}>
 
+
               {
-                allTasks.map(function(task, index){
+                isLoading ? null : allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[0]){
                     gotTaskForTodo = true;
 
                     if(editingMode[0] == true && editingMode[1] == index){
-                      return <div className={styles.card__edit}>
+                      return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
                           <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
@@ -229,19 +214,25 @@ const App = () => {
                         {task.taskDesc}
                       </div> : null}
                       
-                    </div>
+                      </div>
                     }
-
-                    
                   }
                 })
               }
 
-              <div className={styles.cardAdd}>
-                <a href='#' onClick={() => {addNewTask(targets[0])}}><FontAwesomeIcon icon={faPlus} /></a>
-              </div>
+              {
+                isLoading ? <div className={styles.card}>
+                  <div className={styles.card__title_skeleton}></div>
+                  <div className={styles.card__desc_skeleton}></div> 
+                </div> : <React.Fragment>
+                <div className={styles.cardAdd}>
+                  <a href='#' onClick={() => {addNewTask(targets[0])}}><FontAwesomeIcon icon={faPlus} /></a>
+                </div>
 
-              {gotTask(gotTaskForTodo)}
+                {gotTask(gotTaskForTodo)}
+
+                </React.Fragment> 
+              }
 
           </div>
         </div>
@@ -264,15 +255,13 @@ const App = () => {
           <div className={styles.done__content}>
 
               {
-                allTasks.map(function(task, index){
+                isLoading ? null : allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[1]){
                     gotTaskForDone = true;
 
-                    // Check if editing.
-
                     if(editingMode[0] == true && editingMode[1] == index){
-                      return <div className={styles.card__edit}>
+                      return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
                           <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
@@ -308,11 +297,19 @@ const App = () => {
                 })
               } 
 
-              <div className={styles.cardAdd}>
-                <a href='#' onClick={() => {addNewTask(targets[1])}}><FontAwesomeIcon icon={faPlus} /></a>
-              </div>
+              {
+                isLoading ? <div className={styles.card}>
+                  <div className={styles.card__title_skeleton}></div>
+                  <div className={styles.card__desc_skeleton}></div> 
+                </div> : <React.Fragment>
+                <div className={styles.cardAdd}>
+                  <a href='#' onClick={() => {addNewTask(targets[1])}}><FontAwesomeIcon icon={faPlus} /></a>
+                </div>
 
-              {gotTask(gotTaskForDone)}
+                {gotTask(gotTaskForDone)}
+
+                </React.Fragment> 
+              }
 
           </div>
         </div>
@@ -335,13 +332,13 @@ const App = () => {
           <div className={styles.later__content}>
 
               {
-                allTasks.map(function(task, index){
+                isLoading ? null : allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[2]){
                     gotTaskForLater = true;
 
                     if(editingMode[0] == true && editingMode[1] == index){
-                      return <div className={styles.card__edit}>
+                      return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
                           <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
@@ -377,11 +374,19 @@ const App = () => {
                 })
               } 
 
-              <div className={styles.cardAdd}>
-                <a href='#' onClick={() => {addNewTask(targets[2])}}><FontAwesomeIcon icon={faPlus} /></a>
-              </div>
+              {
+                isLoading ? <div className={styles.card}>
+                  <div className={styles.card__title_skeleton}></div>
+                  <div className={styles.card__desc_skeleton}></div> 
+                </div> : <React.Fragment>
+                <div className={styles.cardAdd}>
+                  <a href='#' onClick={() => {addNewTask(targets[2])}}><FontAwesomeIcon icon={faPlus} /></a>
+                </div>
 
-              {gotTask(gotTaskForLater)}
+                {gotTask(gotTaskForLater)}
+
+                </React.Fragment> 
+              }
 
           </div>
         </div>
@@ -398,7 +403,6 @@ const App = () => {
       `}</style>
     </div>
 
-    
   )
 }
 
