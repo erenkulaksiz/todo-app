@@ -69,12 +69,17 @@ const App = () => {
     setAllTasks(temp);
     setTaskHovered([false, -1]);
 
-    await axios.delete(apiRoute+taskIndex)
+    if(taskIndex){
+      await axios.delete(apiRoute+taskIndex)
       .then(res => {
         const data = res.data;
         console.log(data);
       })
-      
+    }else{
+      console.log("error with index: "+index+" id:"+temp[index]['id']);
+      console.log("TRY AGAIN");
+    }
+
   }
 
   const moveTask = (index, target) => {
