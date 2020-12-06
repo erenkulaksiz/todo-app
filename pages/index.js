@@ -76,7 +76,7 @@ const App = () => {
         console.log(data);
       })
     }else{
-      console.log("error with index: "+index+" id:"+temp[index]['id']);
+      console.log("error with index: "+index);
       console.log("TRY AGAIN");
     }
 
@@ -118,16 +118,15 @@ const App = () => {
 
     const temp = [...allTasks];
 
-    console.log("send task index: "+index+" id:"+temp[index]['id']);
-    
     if(temp[index]['id']){
       await axios.put(apiRoute+temp[index]['id'], temp[index])
         .then(res => {
           const data = res.data;
           console.log(data);
         })
+      console.log("send task index: "+index+" id:"+temp[index]['id']);
     }else{
-      console.log("error with index: "+index+" id:"+temp[index]['id']);
+      console.log("error with index: "+index);
     }
   }
 
