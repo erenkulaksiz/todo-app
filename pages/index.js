@@ -48,16 +48,22 @@ const App = () => {
   //
 
   const addNewTask = async (target) => {
+
+    const newTask = {
+      taskName: "New Task", 
+      taskDesc: "Description (Optional)", 
+      taskTarget: target}
   
-    const newTask = {taskName: "New Task", taskDesc: "Description (Optional)", taskTarget: target}
-
-    setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}]);
-
     await axios.post(apiRoute, newTask)
       .then(res => {
         const data = res.data;
         console.log(data);
       })
+
+    setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}]);
+
+    handleRefresh();
+
   }
 
   const deleteTask = async (index) => {
@@ -65,19 +71,19 @@ const App = () => {
     const temp = [...allTasks];
     const taskIndex = temp[index]['id'];
 
-    temp.splice(index, 1);
-    setAllTasks(temp);
-    setTaskHovered([false, -1]);
-
     if(taskIndex){
       await axios.delete(apiRoute+taskIndex)
       .then(res => {
         const data = res.data;
         console.log(data);
       })
+      temp.splice(index, 1);
+      setAllTasks(temp);
+      setTaskHovered([false, -1]);
     }else{
       console.log("error with index: "+index);
       console.log("TRY AGAIN");
+      handleRefresh();
     }
 
   }
@@ -86,7 +92,6 @@ const App = () => {
     const temp = [...allTasks];
     temp[index].taskTarget = target;
     setAllTasks(temp);
-
     sendTasksToAPI(index);
   }
 
@@ -102,16 +107,11 @@ const App = () => {
 
   const submitEditingMode = async (index) => {
     const temp = [...allTasks];
-    if(editTitle){ temp[index].taskName = editTitle; }else if(editTitle == "" || editTitle == " "){ deleteTask(index); }
-    if(editDesc){ temp[index].taskDesc = editDesc; }else if(editDesc == "" || editDesc == ""){ temp[index].taskDesc = editDesc; }
+    if(editTitle){ temp[index].taskName = editTitle } else { deleteTask(index); exitEditingMode(index); return; } 
+    editDesc ? temp[index].taskDesc = editDesc : temp[index].taskDesc = editDesc;
     setAllTasks(temp);
-    //setTaskHovered([false, -1]);
     exitEditingMode(index);
-
-    // Send all tasks to API
-
     sendTasksToAPI(index);
-
   }
 
   const sendTasksToAPI = async (index) => {
@@ -128,11 +128,13 @@ const App = () => {
     }else{
       console.log("error with index: "+index);
     }
+
+    handleRefresh();
+
   }
 
-  //
-
   const handleRefresh = async () => {
+
     console.log("refreshing...");
     setLoading(true);
     await axios.get(apiRoute)
@@ -142,13 +144,14 @@ const App = () => {
         setAllTasks(data);
         setLoading(false);
       })
+
   }
 
   useEffect(() => {
-    handleRefresh();
-  }, []);
 
-  //
+    handleRefresh();
+
+  }, []);
 
   const [taskHovered, setTaskHovered] = useState([false, 0]);
   const toggleTaskHover = (index) => {
@@ -178,7 +181,6 @@ const App = () => {
             </div>
           </div>
           <div className={styles.todo__content}>
-
 
               {
                 isLoading ? null : allTasks.map(function(task, index){
@@ -406,7 +408,6 @@ const App = () => {
         }
       `}</style>
     </div>
-
   )
 }
 
