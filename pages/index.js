@@ -100,18 +100,33 @@ const App = () => {
   }
 
   const exitEditingMode = (index) => {
-    setEditTitle(null);
-    setEditDesc(null);
+    //setEditTitle(null);
+    //setEditDesc(null);
     setEditingMode([false, index]);
   }
 
   const submitEditingMode = async (index) => {
     const temp = [...allTasks];
-    if(editTitle){ temp[index].taskName = editTitle } else { deleteTask(index); exitEditingMode(index); return; } 
-    editDesc ? temp[index].taskDesc = editDesc : temp[index].taskDesc = editDesc;
-    setAllTasks(temp);
-    exitEditingMode(index);
-    sendTasksToAPI(index);
+    console.log("submitting edit name: "+editTitle+" desc: "+editDesc+ " index: "+index);
+
+    if(editTitle){ 
+      temp[index].taskName = editTitle;
+      // success edit of title
+      if(editDesc || editDesc === ""){ 
+        temp[index].taskDesc = editDesc; 
+      }
+      setAllTasks(temp);
+      exitEditingMode(index);
+      sendTasksToAPI(index);
+    } else { 
+      /*deleteTask(index);*/
+      if(editDesc || editDesc === ""){ 
+        temp[index].taskDesc = editDesc; 
+      }
+      exitEditingMode(index); 
+      sendTasksToAPI(index);
+    } 
+    
   }
 
   const sendTasksToAPI = async (index) => {
