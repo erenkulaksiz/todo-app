@@ -109,7 +109,7 @@ const App = () => {
     const temp = [...allTasks];
     console.log("submitting edit name: "+editTitle+" desc: "+editDesc+ " index: "+index);
 
-    if(editTitle){ 
+    if(editTitle && /\S/.test(editTitle)){ 
       temp[index].taskName = editTitle;
       // success edit of title
       if(editDesc || editDesc === ""){ 
@@ -126,6 +126,10 @@ const App = () => {
       exitEditingMode(index); 
       sendTasksToAPI(index);
     } 
+
+    if(editTitle === ""){
+      deleteTask(index);
+    }
     
   }
 
@@ -212,10 +216,10 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
                         </div>
                       </div>
                     }else{
@@ -290,10 +294,10 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
                         </div>
                       </div>
                     }else{
@@ -367,10 +371,10 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
                         </div>
                       </div>
                     }else{
