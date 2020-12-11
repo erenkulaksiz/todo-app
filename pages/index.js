@@ -5,6 +5,8 @@ import { faHeartbeat, faCheckCircle, faLightbulb, faArrowLeft, faArrowRight, faE
 import axios from 'axios';
 
 const App = () => {
+
+  // States
   
   const [allTasks, setAllTasks] = useState([]);
   const [isLoading, setLoading] = useState(false);
@@ -13,13 +15,19 @@ const App = () => {
   const [editDesc, setEditDesc] = useState(null);
   const [editingMode, setEditingMode] = useState([false, -1]);
 
-  const apiRoute = "https://5fca12143c1c220016441a5f.mockapi.io/app/api/list/";
+  const [taskHovered, setTaskHovered] = useState([false, 0]);
+
+  // Config
+
+  const apiKey = "5fca12143c1c220016441a5f";
+  const apiURL = "app/api";
+  const apiResourceName = "list"; // Blank if no mockup
 
   const targets = ["todo","done","later"];
 
-  let gotTaskForTodo = false,
-      gotTaskForDone = false,
-      gotTaskForLater = false;
+  //
+
+  const apiRoute = `https://${apiKey}.mockapi.io/${apiURL}/${apiResourceName}/`;
 
   let todoCount = 0,
       doneCount = 0,
@@ -48,7 +56,8 @@ const App = () => {
   //
 
   const addNewTask = async (target) => {
-
+    await exitEditingMode(); // Make sure you exit edit mode
+    
     const newTask = {
       taskName: "New Task", 
       taskDesc: "Description (Optional)", 
@@ -63,11 +72,9 @@ const App = () => {
     setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}]);
 
     handleRefresh();
-
   }
 
   const deleteTask = async (index) => {
-
     const temp = [...allTasks];
     const taskIndex = temp[index]['id'];
 
@@ -85,7 +92,6 @@ const App = () => {
       console.log("TRY AGAIN");
       handleRefresh();
     }
-
   }
 
   const moveTask = (index, target) => {
@@ -96,6 +102,8 @@ const App = () => {
   }
 
   const enterEditingMode = (index) => {
+    setEditDesc(null); // Making sure that states are clear
+    setEditTitle(null);
     setEditingMode([true, index]);
   }
 
@@ -130,11 +138,9 @@ const App = () => {
     if(editTitle === ""){
       deleteTask(index);
     }
-    
   }
 
   const sendTasksToAPI = async (index) => {
-
     const temp = [...allTasks];
 
     if(temp[index]['id']){
@@ -149,11 +155,9 @@ const App = () => {
     }
 
     handleRefresh();
-
   }
 
   const handleRefresh = async () => {
-
     console.log("refreshing...");
     setLoading(true);
     await axios.get(apiRoute)
@@ -163,16 +167,13 @@ const App = () => {
         setAllTasks(data);
         setLoading(false);
       })
-
   }
 
   useEffect(() => {
-
+    console.log("API URL: "+apiRoute);
     handleRefresh();
-
   }, []);
 
-  const [taskHovered, setTaskHovered] = useState([false, 0]);
   const toggleTaskHover = (index) => {
     setTaskHovered([true, index]);
   }
@@ -183,6 +184,7 @@ const App = () => {
         <div className={styles.todo}>
           <div className={styles.refresh}>
             <a href='#' onClick={() => {handleRefresh()}}><FontAwesomeIcon icon={faSync} /></a>
+            {isLoading && <div className={styles.refresh__text}>Refreshing...</div>}
           </div>
           <div className={styles.todo__header}>
             <div className={styles.header_content}>
@@ -202,11 +204,9 @@ const App = () => {
           <div className={styles.todo__content}>
 
               {
-                isLoading ? null : allTasks.map(function(task, index){
+                !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[0]){
-                    gotTaskForTodo = true;
-
                     if(editingMode[0] == true && editingMode[1] == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
@@ -235,9 +235,7 @@ const App = () => {
                         {task.taskName}
                       </div>
 
-                      {task.taskDesc ? <div className={styles.card__desc}>
-                        {task.taskDesc}
-                      </div> : null}
+                      {task.taskDesc && <div className={styles.card__desc}>{task.taskDesc}</div>}
                       
                       </div>
                     }
@@ -254,7 +252,7 @@ const App = () => {
                   <a href='#' onClick={() => {addNewTask(targets[0])}}><FontAwesomeIcon icon={faPlus} /></a>
                 </div>
 
-                {gotTask(gotTaskForTodo)}
+                {gotTask(todoCount != 0)}
 
                 </React.Fragment> 
               }
@@ -278,13 +276,10 @@ const App = () => {
             </div>
           </div>
           <div className={styles.done__content}>
-
               {
-                isLoading ? null : allTasks.map(function(task, index){
+                !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[1]){
-                    gotTaskForDone = true;
-
                     if(editingMode[0] == true && editingMode[1] == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
@@ -313,9 +308,9 @@ const App = () => {
                         <div className={styles.card__title}>
                           {task.taskName}
                         </div>
-                        <div className={styles.card__desc}>
-                          {task.taskDesc}
-                        </div>
+                        
+                        {task.taskDesc && <div className={styles.card__desc}>{task.taskDesc}</div>}
+
                       </div>
                     }
                   }
@@ -331,7 +326,7 @@ const App = () => {
                   <a href='#' onClick={() => {addNewTask(targets[1])}}><FontAwesomeIcon icon={faPlus} /></a>
                 </div>
 
-                {gotTask(gotTaskForDone)}
+                {gotTask(doneCount != 0)}
 
                 </React.Fragment> 
               }
@@ -355,13 +350,10 @@ const App = () => {
             </div>
           </div>
           <div className={styles.later__content}>
-
               {
-                isLoading ? null : allTasks.map(function(task, index){
+                !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[2]){
-                    gotTaskForLater = true;
-
                     if(editingMode[0] == true && editingMode[1] == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
@@ -381,7 +373,6 @@ const App = () => {
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
                         <div className={taskHovered[1] == index && !editingMode[0] ? styles.card__controls_hover : styles.card__controls}>
-
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[1])}}><FontAwesomeIcon icon={faArrowLeft}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
                           <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
@@ -390,9 +381,9 @@ const App = () => {
                         <div className={styles.card__title}>
                           {task.taskName}
                         </div>
-                        <div className={styles.card__desc}>
-                          {task.taskDesc}
-                        </div>
+                        
+                        {task.taskDesc && <div className={styles.card__desc}>{task.taskDesc}</div>}
+                        
                       </div>
                     }
                   }
@@ -408,7 +399,7 @@ const App = () => {
                   <a href='#' onClick={() => {addNewTask(targets[2])}}><FontAwesomeIcon icon={faPlus} /></a>
                 </div>
 
-                {gotTask(gotTaskForLater)}
+                {gotTask(laterCount != 0)}
 
                 </React.Fragment> 
               }
