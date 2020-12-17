@@ -11,9 +11,16 @@ const App = () => {
   const [allTasks, setAllTasks] = useState([]);
   const [isLoading, setLoading] = useState(false);
 
-  const [editTitle, setEditTitle] = useState(null);
-  const [editDesc, setEditDesc] = useState(null);
-  const [editingMode, setEditingMode] = useState([false, -1]);
+  const [editing, setEditing] = useState([
+    {
+      editTitle: null,
+      editDesc: null,
+      mode: {
+        isEditing: false,
+        index: -1,
+      }
+    }
+  ]);
 
   const [taskHovered, setTaskHovered] = useState([false, 0]);
 
@@ -102,40 +109,50 @@ const App = () => {
   }
 
   const enterEditingMode = (index) => {
-    setEditDesc(null); // Making sure that states are clear
-    setEditTitle(null);
-    setEditingMode([true, index]);
+    setEditing((prevState) => {
+      prevState[0].editTitle = null;
+      prevState[0].editDesc = null;
+      prevState[0].mode.isEditing = true;
+      prevState[0].mode.index = index;
+      return([
+        ...prevState
+      ])
+    });
   }
 
   const exitEditingMode = (index) => {
-    //setEditTitle(null);
-    //setEditDesc(null);
-    setEditingMode([false, index]);
+    setEditing((prevState) => {
+      prevState[0].mode.isEditing = false;
+      prevState[0].mode.index = index;
+      return([
+        ...prevState
+      ])
+    });
   }
 
   const submitEditingMode = async (index) => {
     const temp = [...allTasks];
-    console.log("submitting edit name: "+editTitle+" desc: "+editDesc+ " index: "+index);
+    console.log("submitting edit name: "+editing[0].editTitle+" desc: "+editing[0].editDesc+ " index: "+index);
 
-    if(editTitle && /\S/.test(editTitle)){ 
-      temp[index].taskName = editTitle;
+    if(editing[0].editTitle && /\S/.test(editing[0].editTitle)){ 
+      temp[index].taskName = editing[0].editTitle;
       // success edit of title
-      if(editDesc || editDesc === ""){ 
-        temp[index].taskDesc = editDesc; 
+      if(editing[0].editDesc || editing[0].editDesc === ""){ 
+        temp[index].taskDesc = editing[0].editDesc; 
       }
       setAllTasks(temp);
       exitEditingMode(index);
       sendTasksToAPI(index);
     } else { 
       /*deleteTask(index);*/
-      if(editDesc || editDesc === ""){ 
-        temp[index].taskDesc = editDesc; 
+      if(editing[0].editDesc || editing[0].editDesc === ""){ 
+        temp[index].taskDesc = editing[0].editDesc; 
       }
       exitEditingMode(index); 
       sendTasksToAPI(index);
     } 
 
-    if(editTitle === ""){
+    if(editing[0].editTitle === ""){
       deleteTask(index);
     }
   }
@@ -167,6 +184,7 @@ const App = () => {
         setAllTasks(data);
         setLoading(false);
       })
+  
   }
 
   useEffect(() => {
@@ -184,7 +202,7 @@ const App = () => {
         <div className={styles.todo}>
           <div className={styles.refresh}>
             <a href='#' onClick={() => {handleRefresh()}}><FontAwesomeIcon icon={faSync} /></a>
-            {isLoading && <div className={styles.refresh__text}>Refreshing...</div>}
+            {isLoading && <div className={styles.refresh__text}>Loading tasks...</div>}
           </div>
           <div className={styles.todo__header}>
             <div className={styles.header_content}>
@@ -194,10 +212,10 @@ const App = () => {
               <div className={styles.header_content__count}>
                 {
                   allTasks.map(function(task, index){
-                    task.taskTarget == targets[0] ? todoCount++ : null;
+                    task.taskTarget == targets[0] && todoCount++;
                   })   
                 }
-                {<React.Fragment>{todoCount != 0 ? todoCount : null}</React.Fragment>}
+                {<React.Fragment>{todoCount != 0 && todoCount}</React.Fragment>}
               </div>
             </div>
           </div>
@@ -207,7 +225,7 @@ const App = () => {
                 !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[0]){
-                    if(editingMode[0] == true && editingMode[1] == index){
+                    if(editing[0].mode.isEditing == true && editing[0].mode.index == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
@@ -216,16 +234,32 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} 
+                              onChange={e => {setEditing((prevState) => {
+                                prevState[0].editTitle = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} 
+                              onChange={e => {setEditing((prevState) => {
+                                prevState[0].editDesc = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></textarea>
                         </div>
                       </div>
                     }else{
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                       {/* Controls */}
-                      <div className={taskHovered[1] == index && !editingMode[0] ? styles.card__controls_hover : styles.card__controls}>
+                      <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
                         <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[1])}}><FontAwesomeIcon icon={faArrowRight}/></a>
                         <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
                         <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
@@ -268,7 +302,7 @@ const App = () => {
               <div className={styles.header_content__count}>
                 {
                   allTasks.map(function(task, index){
-                    task.taskTarget == targets[1] ? doneCount++ : null;
+                    task.taskTarget == targets[1] && doneCount++;
                   })  
                 }
                 {<React.Fragment>{doneCount != 0 ? doneCount : null}</React.Fragment>}
@@ -280,7 +314,7 @@ const App = () => {
                 !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[1]){
-                    if(editingMode[0] == true && editingMode[1] == index){
+                    if(editing[0].mode.isEditing == true && editing[0].mode.index == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
@@ -289,16 +323,32 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} 
+                            onChange={e => {setEditing((prevState) => {
+                                prevState[0].editTitle = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} 
+                              onChange={e => {setEditing((prevState) => {
+                                prevState[0].editDesc = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></textarea>
                         </div>
                       </div>
                     }else{
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
-                        <div className={taskHovered[1] == index && !editingMode[0] ? styles.card__controls_hover : styles.card__controls}>
+                        <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[0])}} ><FontAwesomeIcon icon={faArrowLeft}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[2])}}><FontAwesomeIcon icon={faArrowRight}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
@@ -342,7 +392,7 @@ const App = () => {
               <div className={styles.header_content__count}>
                 {
                   allTasks.map(function(task, index){
-                    task.taskTarget == targets[2] ? laterCount++ : null;
+                    task.taskTarget == targets[2] && laterCount++;
                   })  
                 }
                 {<React.Fragment>{laterCount != 0 ? laterCount : null}</React.Fragment>}
@@ -354,7 +404,7 @@ const App = () => {
                 !isLoading && allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[2]){
-                    if(editingMode[0] == true && editingMode[1] == index){
+                    if(editing[0].mode.isEditing && editing[0].mode.index == index){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
@@ -363,16 +413,32 @@ const App = () => {
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
-                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} onChange={e => {setEditTitle(e.target.value)}}></input>
+                          <input type='text' placeholder={"Title"} defaultValue={task.taskName} 
+                              onChange={e => {setEditing((prevState) => {
+                                prevState[0].editTitle = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></input>
                         </div>
                         <div className={styles.card__desc}>
-                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} onChange={e => {setEditDesc(e.target.value)}}></textarea>
+                          <textarea placeholder={"Description"} cols="25" rows="5" style={{width : "100%"}} defaultValue={task.taskDesc} 
+                              onChange={e => {setEditing((prevState) => {
+                                prevState[0].editDesc = e.target.value;
+                                return([
+                                  ...prevState
+                                ])
+                              });
+                            }
+                          }></textarea>
                         </div>
                       </div>
                     }else{
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
-                        <div className={taskHovered[1] == index && !editingMode[0] ? styles.card__controls_hover : styles.card__controls}>
+                        <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
                           <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[1])}}><FontAwesomeIcon icon={faArrowLeft}/></a>
                           <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
                           <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
