@@ -46,17 +46,6 @@
                     background-color: #c0c0c0; 
                 }
             }
-            &__text{
-                position: absolute;
-                display: flex;
-                margin-left: 12px;
-                padding: 8px;
-                background-color: #E0E0E0;
-                border: 1px solid #BFBFBF;
-                border-radius: 8px;
-                align-items: center;
-                transform: translateX(25px);
-            }
         }
         .todo{
             display: flex;
@@ -164,28 +153,6 @@
 }
 
 .card{
-    @keyframes placeHolderShimmer{
-        0% {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-            background-position: -468px 0
-        }
-        to {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-            background-position: 468px 0
-        }
-    }
-    
-    @mixin skeleton{
-      will-change: transform;
-      animation: placeHolderShimmer 1s linear infinite forwards;
-      -webkit-backface-visibility: hidden;
-      background: #e6e6e6;
-      background: linear-gradient(90deg, #eee 8%, #ddd 18%, #eee 33%);
-      background-size: 800px 104px;
-    }
-
     display: flex;
     flex-direction: column;
     background-color: white;
@@ -238,22 +205,6 @@
         font-size: 14px;
         margin-top: 8px;
         color: #A2A2A2;
-    }
-    &__title_skeleton{
-        height: 22px;
-        width: 100%;
-        font-size: 18px;
-        font-weight: 500;
-        color: #3F4544;
-        @include skeleton();
-    }
-    &__desc_skeleton{
-        height: 18px;
-        width: 100%;
-        font-size: 14px;
-        margin-top: 8px;
-        color: #A2A2A2;
-        @include skeleton();
     }
     &__edit{
         display: flex;

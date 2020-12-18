@@ -7,9 +7,8 @@ import axios from 'axios';
 const App = () => {
 
   // States
-  
+
   const [allTasks, setAllTasks] = useState([]);
-  const [isLoading, setLoading] = useState(false);
 
   const [editing, setEditing] = useState([
     {
@@ -17,7 +16,7 @@ const App = () => {
       editDesc: null,
       mode: {
         isEditing: false,
-        index: -1,
+        id: -1,
       }
     }
   ]);
@@ -68,107 +67,116 @@ const App = () => {
     const newTask = {
       taskName: "New Task", 
       taskDesc: "Description (Optional)", 
-      taskTarget: target}
-  
+      taskTarget: target
+    }
+
     await axios.post(apiRoute, newTask)
       .then(res => {
         const data = res.data;
         console.log(data);
       })
 
-    setAllTasks([...allTasks, {taskName: 'New Task', taskDesc: 'Description (Optional)', taskTarget: target}]);
-
     handleRefresh();
+
+    console.log("added new task at target: "+target);
   }
 
-  const deleteTask = async (index) => {
+  const deleteTask = async (id) => {
     const temp = [...allTasks];
-    const taskIndex = temp[index]['id'];
+    const indexOfTask = temp.findIndex(x => x.id === id);
 
-    if(taskIndex){
-      await axios.delete(apiRoute+taskIndex)
+    console.log("deleting task index:"+indexOfTask+" id:"+id);
+
+    await axios.delete(apiRoute+id)
       .then(res => {
         const data = res.data;
         console.log(data);
       })
-      temp.splice(index, 1);
-      setAllTasks(temp);
-      setTaskHovered([false, -1]);
-    }else{
-      console.log("error with index: "+index);
-      console.log("TRY AGAIN");
       handleRefresh();
-    }
+      setTaskHovered([false, -1]);
   }
 
-  const moveTask = (index, target) => {
+  const moveTask = (id, target) => {
     const temp = [...allTasks];
-    temp[index].taskTarget = target;
+    const indexOfTask = temp.findIndex(x => x.id === id);
+    temp[indexOfTask].taskTarget = target;
+    console.log("moving task id: "+indexOfTask);
     setAllTasks(temp);
-    sendTasksToAPI(index);
+    sendTasksToAPI(id);
   }
 
-  const enterEditingMode = (index) => {
+  const enterEditingMode = (id) => {
+    console.log("entering editing mode id: "+id);
     setEditing((prevState) => {
       prevState[0].editTitle = null;
       prevState[0].editDesc = null;
       prevState[0].mode.isEditing = true;
-      prevState[0].mode.index = index;
+      prevState[0].mode.id = id;
       return([
         ...prevState
       ])
     });
   }
 
-  const exitEditingMode = (index) => {
+  const exitEditingMode = (id) => {
+    console.log("exiting editing mode id: "+id);
     setEditing((prevState) => {
       prevState[0].mode.isEditing = false;
-      prevState[0].mode.index = index;
+      prevState[0].mode.id = id;
       return([
         ...prevState
       ])
     });
   }
 
-  const submitEditingMode = async (index) => {
+  const submitEditingMode = async (id) => {
     const temp = [...allTasks];
-    console.log("submitting edit name: "+editing[0].editTitle+" desc: "+editing[0].editDesc+ " index: "+index);
+    const indexOfTask = temp.findIndex(x => x.id === id);
+    console.log("submitting edit name: "+editing[0].editTitle+" desc: "+editing[0].editDesc+ " index: "+indexOfTask+" id: "+id);
 
     if(editing[0].editTitle && /\S/.test(editing[0].editTitle)){ 
-      temp[index].taskName = editing[0].editTitle;
+      temp[indexOfTask].taskName = editing[0].editTitle;
       // success edit of title
       if(editing[0].editDesc || editing[0].editDesc === ""){ 
-        temp[index].taskDesc = editing[0].editDesc; 
+        temp[indexOfTask].taskDesc = editing[0].editDesc; 
       }
       setAllTasks(temp);
-      exitEditingMode(index);
-      sendTasksToAPI(index);
+      exitEditingMode(id);
+      sendTasksToAPI(id);
     } else { 
       /*deleteTask(index);*/
       if(editing[0].editDesc || editing[0].editDesc === ""){ 
-        temp[index].taskDesc = editing[0].editDesc; 
+        temp[indexOfTask].taskDesc = editing[0].editDesc; 
       }
-      exitEditingMode(index); 
-      sendTasksToAPI(index);
+      exitEditingMode(id); 
+      sendTasksToAPI(id);
     } 
 
     if(editing[0].editTitle === ""){
-      deleteTask(index);
+      deleteTask(id);
     }
   }
 
-  const sendTasksToAPI = async (index) => {
+  const sendTasksToAPI = async (id) => {
     const temp = [...allTasks];
 
-    if(temp[index]['id']){
-      await axios.put(apiRoute+temp[index]['id'], temp[index])
+    const indexOfTask = temp.findIndex(x => x.id === id);
+
+    try { 
+      await axios.put(apiRoute+id, temp[indexOfTask])
         .then(res => {
           const data = res.data;
           console.log(data);
+          console.log("%cSend task index: "+indexOfTask+" id:"+temp[indexOfTask]['id'], "color:green");
         })
-      console.log("send task index: "+index+" id:"+temp[index]['id']);
-    }else{
-      console.log("error with index: "+index);
+      .catch(err => {
+        if (err.response.status === 404) {
+          throw new Error('404');
+        }
+        throw err;
+      })
+    } catch (err) {
+      console.log("%cCant send tasks:" +err, "color:red");
     }
 
     handleRefresh();
@@ -176,19 +184,28 @@ const App = () => {
 
   const handleRefresh = async () => {
     console.log("refreshing...");
-    setLoading(true);
-    await axios.get(apiRoute)
+
+    try { 
+      await axios.get(apiRoute)
       .then(res => {
-        const data = res.data;
-        console.log(data);
-        setAllTasks(data);
-        setLoading(false);
+          const data = res.data;
+          console.log(data);
+          setAllTasks(data);
       })
-  
+      .catch(err => {
+        if (err.response.status === 404) {
+          throw new Error('404');
+        }
+        throw err;
+      })
+    } catch (err) {
+      console.log("%cCant refresh tasks:" +err, "color:red");
+    }
   }
 
   useEffect(() => {
     console.log("API URL: "+apiRoute);
+    console.log("%cTodo app launch", "color:green");
     handleRefresh();
   }, []);
 
@@ -202,7 +219,6 @@ const App = () => {
         <div className={styles.todo}>
           <div className={styles.refresh}>
             <a href='#' onClick={() => {handleRefresh()}}><FontAwesomeIcon icon={faSync} /></a>
-            {isLoading && <div className={styles.refresh__text}>Loading tasks...</div>}
           </div>
           <div className={styles.todo__header}>
             <div className={styles.header_content}>
@@ -220,17 +236,16 @@ const App = () => {
             </div>
           </div>
           <div className={styles.todo__content}>
-
               {
-                !isLoading && allTasks.map(function(task, index){
+                allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[0]){
-                    if(editing[0].mode.isEditing == true && editing[0].mode.index == index){
+                    if(editing[0].mode.isEditing == true && editing[0].mode.id == task.id){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
-                          <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(task.id)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' onClick={() => {exitEditingMode(task.id)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
@@ -260,9 +275,9 @@ const App = () => {
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                       {/* Controls */}
                       <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
-                        <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[1])}}><FontAwesomeIcon icon={faArrowRight}/></a>
-                        <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
-                        <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
+                        <a href='#' className={styles.navIcon} onClick={() => {moveTask(task.id, targets[1])}}><FontAwesomeIcon icon={faArrowRight}/></a>
+                        <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(task.id)}}><FontAwesomeIcon icon={faEdit} /></a>
+                        <a href='#' onClick={() => {deleteTask(task.id)}}><FontAwesomeIcon icon={faTrash}/></a>
                       </div>
                       {/* End of Controls */}
                       <div className={styles.card__title}>
@@ -277,20 +292,11 @@ const App = () => {
                 })
               }
 
-              {
-                isLoading ? <div className={styles.card}>
-                  <div className={styles.card__title_skeleton}></div>
-                  <div className={styles.card__desc_skeleton}></div> 
-                </div> : <React.Fragment>
-                <div className={styles.cardAdd}>
-                  <a href='#' onClick={() => {addNewTask(targets[0])}}><FontAwesomeIcon icon={faPlus} /></a>
-                </div>
+              <div className={styles.cardAdd}>
+                <a href='#' onClick={() => {addNewTask(targets[0])}}><FontAwesomeIcon icon={faPlus} /></a>
+              </div>
 
-                {gotTask(todoCount != 0)}
-
-                </React.Fragment> 
-              }
-
+              {gotTask(todoCount != 0)}
           </div>
         </div>
         <div className={styles.done}>
@@ -305,21 +311,21 @@ const App = () => {
                     task.taskTarget == targets[1] && doneCount++;
                   })  
                 }
-                {<React.Fragment>{doneCount != 0 ? doneCount : null}</React.Fragment>}
+                {<React.Fragment>{doneCount != 0 && doneCount}</React.Fragment>}
               </div>
             </div>
           </div>
           <div className={styles.done__content}>
               {
-                !isLoading && allTasks.map(function(task, index){
+                allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[1]){
-                    if(editing[0].mode.isEditing == true && editing[0].mode.index == index){
+                    if(editing[0].mode.isEditing == true && editing[0].mode.id == task.id){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
-                          <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(task.id)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' onClick={() => {exitEditingMode(task.id)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
@@ -349,10 +355,10 @@ const App = () => {
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
                         <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
-                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[0])}} ><FontAwesomeIcon icon={faArrowLeft}/></a>
-                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[2])}}><FontAwesomeIcon icon={faArrowRight}/></a>
-                          <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
-                          <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
+                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(task.id, targets[0])}} ><FontAwesomeIcon icon={faArrowLeft}/></a>
+                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(task.id, targets[2])}}><FontAwesomeIcon icon={faArrowRight}/></a>
+                          <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(task.id)}}><FontAwesomeIcon icon={faEdit} /></a>
+                          <a href='#' onClick={() => {deleteTask(task.id)}}><FontAwesomeIcon icon={faTrash}/></a>
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
@@ -367,20 +373,11 @@ const App = () => {
                 })
               } 
 
-              {
-                isLoading ? <div className={styles.card}>
-                  <div className={styles.card__title_skeleton}></div>
-                  <div className={styles.card__desc_skeleton}></div> 
-                </div> : <React.Fragment>
-                <div className={styles.cardAdd}>
-                  <a href='#' onClick={() => {addNewTask(targets[1])}}><FontAwesomeIcon icon={faPlus} /></a>
-                </div>
+              <div className={styles.cardAdd}>
+                <a href='#' onClick={() => {addNewTask(targets[1])}}><FontAwesomeIcon icon={faPlus} /></a>
+              </div>
 
-                {gotTask(doneCount != 0)}
-
-                </React.Fragment> 
-              }
-
+              {gotTask(doneCount != 0)}
           </div>
         </div>
         <div className={styles.later}>
@@ -395,21 +392,21 @@ const App = () => {
                     task.taskTarget == targets[2] && laterCount++;
                   })  
                 }
-                {<React.Fragment>{laterCount != 0 ? laterCount : null}</React.Fragment>}
+                {<React.Fragment>{laterCount != 0 && laterCount}</React.Fragment>}
               </div>
             </div>
           </div>
           <div className={styles.later__content}>
               {
-                !isLoading && allTasks.map(function(task, index){
+                allTasks.map(function(task, index){
                   // Show only the targeted tasks.
                   if(task.taskTarget == targets[2]){
-                    if(editing[0].mode.isEditing && editing[0].mode.index == index){
+                    if(editing[0].mode.isEditing && editing[0].mode.id == task.id){
                       return <div className={styles.card__edit} key={index}>
                         {/* Controls */}
                         <div className={styles.card__controls_hover}>
-                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(index)}}><FontAwesomeIcon icon={faCheck}/></a>
-                          <a href='#' onClick={() => {exitEditingMode(index)}}><FontAwesomeIcon icon={faTimes}/></a>
+                          <a href='#' className={styles.navIconSubmit} onClick={() => {submitEditingMode(task.id)}}><FontAwesomeIcon icon={faCheck}/></a>
+                          <a href='#' onClick={() => {exitEditingMode(task.id)}}><FontAwesomeIcon icon={faTimes}/></a>
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
@@ -439,9 +436,9 @@ const App = () => {
                       return <div className={styles.card} key={index} onMouseEnter={() => {toggleTaskHover(index)}} onMouseLeave={() => {setTaskHovered([false, -1])}}>
                         {/* Controls */}
                         <div className={taskHovered[1] == index && !editing[0].mode.isEditing ? styles.card__controls_hover : styles.card__controls}>
-                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(index, targets[1])}}><FontAwesomeIcon icon={faArrowLeft}/></a>
-                          <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(index)}}><FontAwesomeIcon icon={faEdit} /></a>
-                          <a href='#' onClick={() => {deleteTask(index)}}><FontAwesomeIcon icon={faTrash}/></a>
+                          <a href='#' className={styles.navIcon} onClick={() => {moveTask(task.id, targets[1])}}><FontAwesomeIcon icon={faArrowLeft}/></a>
+                          <a href='#' className={styles.navIcon} onClick={() => {enterEditingMode(task.id)}}><FontAwesomeIcon icon={faEdit} /></a>
+                          <a href='#' onClick={() => {deleteTask(task.id)}}><FontAwesomeIcon icon={faTrash}/></a>
                         </div>
                         {/* End of Controls */}
                         <div className={styles.card__title}>
@@ -456,20 +453,11 @@ const App = () => {
                 })
               } 
 
-              {
-                isLoading ? <div className={styles.card}>
-                  <div className={styles.card__title_skeleton}></div>
-                  <div className={styles.card__desc_skeleton}></div> 
-                </div> : <React.Fragment>
-                <div className={styles.cardAdd}>
-                  <a href='#' onClick={() => {addNewTask(targets[2])}}><FontAwesomeIcon icon={faPlus} /></a>
-                </div>
+              <div className={styles.cardAdd}>
+                <a href='#' onClick={() => {addNewTask(targets[2])}}><FontAwesomeIcon icon={faPlus} /></a>
+              </div>
 
-                {gotTask(laterCount != 0)}
-
-                </React.Fragment> 
-              }
-
+              {gotTask(laterCount != 0)}
           </div>
         </div>
       </div>
